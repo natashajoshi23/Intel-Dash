@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip3 install *)",
+      "Bash(python3 server.py)",
+      "Bash(curl -s http://localhost:8765)",
+      "Bash(pkill -f \"python3 server.py\")",
+      "Bash(xargs kill -9)",
+      "Bash(python3 -c ' *)",
+      "Skill(artifact-design)",
+      "Skill(artifact-design:*)",
+      "Bash(mkdir -p /Users/natashajoshi/intel-dash2/.claude)"
+    ]
+  }
+}
