@@ -112,10 +112,43 @@ def search_web(company: str) -> str:
             date_tag = f" [published: {published[:10]}]" if published else ""
             snippets.append(f"- {title}{date_tag}: {content[:300]} (source: {url})")
 
+        # If fewer than 4 matching snippets, do broader searches regardless of raw result count
+        if len(snippets) < 4:
+            print(f"  Only {len(snippets)} matching snippets — broadening search for {company}")
+            try:
+                r4b = client.search(query=f'{company} news updates services', search_depth="advanced", max_results=10, days=730, include_raw_content=False)
+                for r in r4b.get("results", []):
+                    url = r.get('url', '')
+                    if url in seen_urls: continue
+                    seen_urls.add(url)
+                    title = r.get('title', '')
+                    content = r.get('content', '')
+                    combined = title + ' ' + content
+                    if not name_match(combined): continue
+                    published = r.get('published_date', '')
+                    date_tag = f" [published: {published[:10]}]" if published else ""
+                    snippets.append(f"- {title}{date_tag}: {content[:300]} (source: {url})")
+            except Exception:
+                pass
+            try:
+                r5b = client.search(query=f'{company}', search_depth="advanced", max_results=8, days=730, include_domains=["linkedin.com"], include_raw_content=False)
+                for r in r5b.get("results", []):
+                    url = r.get('url', '')
+                    if url in seen_urls: continue
+                    seen_urls.add(url)
+                    title = r.get('title', '')
+                    content = r.get('content', '')
+                    combined = title + ' ' + content
+                    if not name_match(combined): continue
+                    published = r.get('published_date', '')
+                    date_tag = f" [published: {published[:10]}]" if published else ""
+                    snippets.append(f"- {title}{date_tag}: {content[:300]} (source: {url})")
+            except Exception:
+                pass
+
         if not snippets:
             print(f"  No results found for {company} — trying direct site search")
             try:
-                # Last resort: search the company's own website directly
                 first_word = company.split()[0].lower()
                 r6 = client.search(query=f'site:{first_word}consulting.com OR "{company}"', search_depth="advanced", max_results=8, days=730, include_raw_content=False)
                 for r in r6.get("results", []):
