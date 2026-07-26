@@ -723,11 +723,10 @@ function logoHtml(company) {
   const colors = ['#e8ff47','#ff3b5c','#22e89a','#ff9500','#7c9fff','#ff6bb5'];
   const color = colors[company.charCodeAt(0) % colors.length];
   const direct = `https://${domain}/favicon.ico`;
-  const ddg = `https://icons.duckduckgo.com/ip3/${domain}.ico`;
   return `<span class="co-logo" style="--co-color:${color}">
     <img src="${direct}" alt="" width="22" height="22" style="border-radius:3px;display:none"
       onload="this.style.display='block';this.nextElementSibling.style.display='none'"
-      onerror="this.src='${ddg}';this.onerror=function(){this.style.display='none'}">
+      onerror="this.style.display='none'">
     <span class="co-initials">${initials}</span>
   </span>`;
 }
