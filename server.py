@@ -128,7 +128,7 @@ def search_web(company: str) -> str:
             except Exception:
                 pass
 
-        snippets = snippets[:12]
+        snippets = snippets[:7]
         print(f"  Tavily found {len(snippets)} relevant results for {company}")
         return "\n".join(snippets)
     except Exception as e:
