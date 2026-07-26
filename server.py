@@ -48,12 +48,20 @@ def send_slack(findings):
         print(f"  Slack failed: {e}")
 
 
+KNOWN_DOMAINS = {
+    'cleo consulting': 'cleoconsulting.com',
+    'kpmg': 'kpmg.com', 'pwc': 'pwc.com', 'deloitte': 'deloitte.com',
+    'accenture': 'accenture.com', 'mckinsey': 'mckinsey.com',
+    'randstad': 'randstad.com', 'bain': 'bain.com', 'ey': 'ey.com',
+}
+
 def search_web(company: str) -> str:
     if not TAVILY_API_KEY:
         return ""
     try:
         client = TavilyClient(api_key=TAVILY_API_KEY)
         all_results = []
+        company_domain = KNOWN_DOMAINS.get(company.lower().strip())
 
         try:
             r1 = client.search(query=f'"{company}"', search_depth="advanced", topic="news", max_results=15, days=365, include_raw_content=False)
@@ -73,7 +81,16 @@ def search_web(company: str) -> str:
         except Exception:
             pass
 
-        # For smaller companies with few results, broaden the search
+        # Always search the company's own website directly
+        if company_domain:
+            try:
+                r_site = client.search(query=f'{company} services news hiring', search_depth="advanced", max_results=10, days=730, include_domains=[company_domain], include_raw_content=False)
+                all_results += r_site.get("results", [])
+                print(f"  Direct site search for {company_domain}: {len(r_site.get('results',[]))} results")
+            except Exception as e:
+                print(f"  Site search failed: {e}")
+
+        # If still fewer than 5 raw results, broaden further
         if len(all_results) < 5:
             try:
                 r4 = client.search(query=f'{company} news updates services', search_depth="advanced", max_results=10, days=730, include_raw_content=False)
@@ -87,10 +104,13 @@ def search_web(company: str) -> str:
                 pass
 
         # Name matching: require full company name OR all significant words present together
-        def name_match(text):
+        def name_match(text, url=''):
             t = text.lower()
             cn = company.lower()
             if cn in t:
+                return True
+            # If result is from the company's own domain, always accept
+            if company_domain and company_domain in url.lower():
                 return True
             # All words ≥4 chars must appear
             words = [w for w in cn.split() if len(w) >= 4]
@@ -107,7 +127,7 @@ def search_web(company: str) -> str:
                 continue
             seen_urls.add(url)
             combined = title + ' ' + content
-            if not name_match(combined):
+            if not name_match(combined, url):
                 continue
             date_tag = f" [published: {published[:10]}]" if published else ""
             snippets.append(f"- {title}{date_tag}: {content[:300]} (source: {url})")
@@ -124,7 +144,7 @@ def search_web(company: str) -> str:
                     title = r.get('title', '')
                     content = r.get('content', '')
                     combined = title + ' ' + content
-                    if not name_match(combined): continue
+                    if not name_match(combined, url): continue
                     published = r.get('published_date', '')
                     date_tag = f" [published: {published[:10]}]" if published else ""
                     snippets.append(f"- {title}{date_tag}: {content[:300]} (source: {url})")
@@ -139,7 +159,7 @@ def search_web(company: str) -> str:
                     title = r.get('title', '')
                     content = r.get('content', '')
                     combined = title + ' ' + content
-                    if not name_match(combined): continue
+                    if not name_match(combined, url): continue
                     published = r.get('published_date', '')
                     date_tag = f" [published: {published[:10]}]" if published else ""
                     snippets.append(f"- {title}{date_tag}: {content[:300]} (source: {url})")
@@ -394,11 +414,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 f'You are a competitive intelligence analyst. {context}\n'
                 f'Extract 4-6 findings about "{company}" from the sources below.\n\n'
                 f'Rules:\n'
-                f'- ONLY include findings where "{company}" is the PRIMARY subject — not a partner, client, or mention\n'
-                f'- REJECT any result about a different company that merely mentions "{company.split()[0]}" (e.g. if searching "Cleo Consulting", reject anything about "Cleo AI", "Cleo app", "Cleo Communications", "Beyond Cloud", or any company that is NOT "{company}")\n'
+                f'- ONLY include findings where "{company}" is the PRIMARY subject — not a partner, client, or passing mention\n'
+                f'- REJECT results about any other company that merely mentions "{company.split()[0]}" (e.g. reject "Cleo AI", "Cleo app", "Beyond Cloud", anything that is NOT "{company}")\n'
+                f'- REJECT generic/static content: company descriptions, "about us", evergreen service listings, or anything that could have been written 3 years ago\n'
+                f'- ONLY include: new hires, job openings, partnerships, contracts won, leadership changes, office openings, awards, client wins, pricing changes, or news coverage\n'
+                f'- LinkedIn posts and job listings count if they show a real update (new role posted, new hire announced)\n'
                 f'- Only use facts explicitly stated in sources — no invention\n'
-                f'- Each finding must be a SPECIFIC EVENT or development about "{company}" itself\n'
-                f'- If no valid findings exist for "{company}" specifically, return: []\n\n'
+                f'- If no valid findings exist, return: []\n\n'
                 f'Return ONLY a valid JSON array, no markdown, no explanation:\n'
                 f'[{{"company":"{company}","change_type":"pricing|product|hiring|news","impact_level":"high|medium|low","summary":"3-5 sentences. Include specific numbers, percentages, product names, executive names, deal sizes, or other concrete details from the source. Do not be vague.","date":"Mon YYYY (month and year only, e.g. Jan 2025)","url":"exact source url"}}]\n\n'
                 f'Sources:\n{web_results}'
