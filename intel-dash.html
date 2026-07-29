@@ -725,7 +725,7 @@ function logoHtml(company) {
   const direct = `https://${domain}/favicon.ico`;
   return `<span class="co-logo" style="--co-color:${color}">
     <img src="${direct}" alt="" width="22" height="22" style="border-radius:3px;display:none"
-      onload="this.style.display='block'"
+      onload="if(this.naturalWidth>2&&this.naturalHeight>2){this.style.display='block'}else{const l=this.closest('.co-logo');l.style.display='none';l.style.width='0';l.style.height='0'}"
       onerror="const l=this.closest('.co-logo');l.style.display='none';l.style.width='0';l.style.height='0'">
   </span>`;
 }

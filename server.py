@@ -412,16 +412,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
             print(f"  Got {len(web_results)} chars of web results for {company}")
             prompt = (
                 f'You are a competitive intelligence analyst. {context}\n'
-                f'Extract 4-6 findings about "{company}" from the sources below.\n\n'
+                f'Extract 4-6 findings about "{company}" AS A BUSINESS from the sources below.\n\n'
                 f'Rules:\n'
-                f'- ONLY include findings where "{company}" is the PRIMARY subject — not a partner, client, or passing mention\n'
-                f'- REJECT results about any other company that merely mentions "{company.split()[0]}" (e.g. reject "Cleo AI", "Cleo app", "Beyond Cloud", anything that is NOT "{company}")\n'
-                f'- Include job postings, partnerships, service offerings, LinkedIn updates, awards, client wins, hiring, and news coverage\n'
-                f'- Each finding should be a specific fact or development — include anything concrete and verifiable from the sources\n'
+                f'- "{company}" must be a BUSINESS/COMPANY — REJECT anything where "{company}" refers to a street name, location, church, event venue, nonprofit, or any non-business entity\n'
+                f'- ONLY include findings where "{company}" the COMPANY is the primary subject — not a partner, client, or passing mention\n'
+                f'- REJECT results about any other organization that merely shares a word with "{company}"\n'
+                f'- REJECT findings that are not relevant to competing with or monitoring "{company}" as a business rival (e.g. road construction, church hours, local events are NOT competitive intelligence)\n'
+                f'- {"Only include findings relevant to: " + my_company + ". Skip anything unrelated to this context." if my_company else ""}\n'
+                f'- Include: job postings, partnerships, service offerings, LinkedIn updates, awards, client wins, hiring, pricing changes, product launches, news coverage\n'
                 f'- Only use facts explicitly stated in sources — no invention\n'
-                f'- If no valid findings exist, return: []\n\n'
+                f'- If no valid business findings exist, return: []\n\n'
                 f'Return ONLY a valid JSON array, no markdown, no explanation:\n'
-                f'[{{"company":"{company}","change_type":"pricing|product|hiring|news","impact_level":"high|medium|low","summary":"3-5 sentences. Include specific numbers, percentages, product names, executive names, deal sizes, or other concrete details from the source. Do not be vague.","date":"Mon YYYY (month and year only, e.g. Jan 2025)","url":"exact source url"}}]\n\n'
+                f'[{{"company":"{company}","change_type":"pricing|product|hiring|news","impact_level":"high|medium|low","summary":"3-5 sentences with specific numbers, product names, executive names, or deal sizes.","date":"Mon YYYY (month and year only, e.g. Jan 2025)","url":"exact source url"}}]\n\n'
                 f'Sources:\n{web_results}'
             )
 
