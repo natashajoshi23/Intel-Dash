@@ -55,22 +55,24 @@ KNOWN_DOMAINS = {
     'randstad': 'randstad.com', 'bain': 'bain.com', 'ey': 'ey.com',
 }
 
-def search_web(company: str) -> str:
+def search_web(company: str, context: str = "") -> str:
     if not TAVILY_API_KEY:
         return ""
     try:
         client = TavilyClient(api_key=TAVILY_API_KEY)
         all_results = []
         company_domain = KNOWN_DOMAINS.get(company.lower().strip())
+        # Add qualifier to disambiguate company names from places/other entities
+        qualifier = "company" if not context else context.split()[2] if len(context.split()) > 2 else "company"
 
         try:
-            r1 = client.search(query=f'"{company}"', search_depth="advanced", topic="news", max_results=15, days=365, include_raw_content=False)
+            r1 = client.search(query=f'"{company}" {qualifier}', search_depth="advanced", topic="news", max_results=15, days=365, include_raw_content=False)
             all_results += r1.get("results", [])
         except Exception as e:
             print(f"  Tavily news search failed: {e}")
 
         try:
-            r2 = client.search(query=f'"{company}" 2025 OR 2026', search_depth="advanced", max_results=10, days=365, include_raw_content=False)
+            r2 = client.search(query=f'"{company}" {qualifier} 2025 OR 2026', search_depth="advanced", max_results=10, days=365, include_raw_content=False)
             all_results += r2.get("results", [])
         except Exception as e:
             print(f"  Tavily web search failed: {e}")
@@ -225,7 +227,7 @@ def run_scheduled_research(cfg):
     context = f"We are: {my_company}." if my_company else ""
     for company in competitors:
         try:
-            web_results = search_web(company)
+            web_results = search_web(company, my_company)
             if not web_results:
                 continue
             prompt = (
@@ -403,7 +405,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             context = f"We are: {my_company}." if my_company else ""
             print(f"  Researching: {company}")
 
-            web_results = search_web(company)
+            web_results = search_web(company, my_company)
             if not web_results:
                 print(f"  No web results found for {company}")
                 self._json({"answer": f'No recent web results found for "{company}". This company may not have significant public news coverage.'})
@@ -416,10 +418,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 f'Rules:\n'
                 f'- "{company}" must be a BUSINESS/COMPANY — REJECT anything where "{company}" refers to a street name, location, church, event venue, nonprofit, or any non-business entity\n'
                 f'- ONLY include findings where "{company}" the COMPANY is the primary subject — not a partner, client, or passing mention\n'
-                f'- REJECT results about any other organization that merely shares a word with "{company}"\n'
-                f'- REJECT findings that are not relevant to competing with or monitoring "{company}" as a business rival (e.g. road construction, church hours, local events are NOT competitive intelligence)\n'
-                f'- {"Only include findings relevant to: " + my_company + ". Skip anything unrelated to this context." if my_company else ""}\n'
-                f'- Include: job postings, partnerships, service offerings, LinkedIn updates, awards, client wins, hiring, pricing changes, product launches, news coverage\n'
+                f'- REJECT any result where "{company}" refers to a street, road, location, church, nonprofit, or physical place — only treat it as a business\n'
+                f'- REJECT results that are about road construction, local events, churches, or anything unrelated to business competition\n'
+                f'- {"Prioritize findings relevant to competing with this company given our context: " + my_company if my_company else ""}\n'
+                f'- Include: hiring, partnerships, service offerings, LinkedIn updates, client wins, pricing, product launches, news\n'
                 f'- Only use facts explicitly stated in sources — no invention\n'
                 f'- If no valid business findings exist, return: []\n\n'
                 f'Return ONLY a valid JSON array, no markdown, no explanation:\n'

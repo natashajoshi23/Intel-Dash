@@ -722,12 +722,7 @@ function logoHtml(company) {
   const initials = company.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const colors = ['#e8ff47','#ff3b5c','#22e89a','#ff9500','#7c9fff','#ff6bb5'];
   const color = colors[company.charCodeAt(0) % colors.length];
-  const direct = `https://${domain}/favicon.ico`;
-  return `<span class="co-logo" style="--co-color:${color}">
-    <img src="${direct}" alt="" width="22" height="22" style="border-radius:3px;display:none"
-      onload="if(this.naturalWidth>2&&this.naturalHeight>2){this.style.display='block'}else{const l=this.closest('.co-logo');l.style.display='none';l.style.width='0';l.style.height='0'}"
-      onerror="const l=this.closest('.co-logo');l.style.display='none';l.style.width='0';l.style.height='0'">
-  </span>`;
+  return ``;
 }
 
 function escHtml(s) {
