@@ -196,7 +196,7 @@ def call_groq(prompt: str) -> str:
     for attempt in range(3):
         try:
             response = client.chat.completions.create(
-                model="mixtral-8x7b-32768",
+                model="llama-3.2-90b-vision-preview",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=4096,
             )
