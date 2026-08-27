@@ -196,7 +196,7 @@ def call_groq(prompt: str) -> str:
     for attempt in range(3):
         try:
             response = client.chat.completions.create(
-                model="llama-3.2-90b-vision-preview",
+                model="openai/gpt-oss-120b",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=4096,
             )
