@@ -63,7 +63,7 @@ def search_web(company: str, context: str = "") -> str:
         all_results = []
         company_domain = KNOWN_DOMAINS.get(company.lower().strip())
         # Add qualifier to disambiguate company names from places/other entities
-        qualifier = "company" if not context else context.split()[2] if len(context.split()) > 2 else "company"
+        qualifier = "company"
 
         try:
             r1 = client.search(query=f'"{company}" {qualifier}', search_depth="advanced", topic="news", max_results=15, days=365, include_raw_content=False)
